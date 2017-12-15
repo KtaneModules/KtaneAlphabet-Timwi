@@ -11,9 +11,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 615501dbe4f3fe94fbf4b564abb10237, type: 3}
   m_Name: ModConfig
   m_EditorClassIdentifier: 
-  id: 
-  title: 
-  description: 
-  version: 
+  id: Alphabet
+  title: Alphabet
+  description: 'Press four lettered keys in the correct order.
+
+
+    Module created by mitterdoo.
+
+
+    [url=https://ktane.timwi.de/HTML/Alphabet.html]Manual HTML[/url]
+
+    [url=https://ktane.timwi.de/PDF/Alphabet.pdf]Manual PDF[/url]'
+  version: 1.0
   outputFolder: build
-  previewImage: {fileID: 0}
+  previewImage: {fileID: 2800000, guid: b5c7e83cffbab2c4287e731f886ab69b, type: 3}
