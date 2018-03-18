@@ -1,6 +1,9 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using Random = UnityEngine.Random;
 
 public class AlphabetModule : MonoBehaviour {
 
@@ -241,6 +244,35 @@ public class AlphabetModule : MonoBehaviour {
 		return New;
 
 	}
+
+#pragma warning disable 414
+    private string TwitchHelpMessage = @"Submit your answer with !{0} press A B C D.";
+#pragma warning restore 414
+
+    private bool equalsAnyNoCase(string str, params string[] options)
+    {
+        return options.Any(opt => opt.Equals(str, StringComparison.InvariantCultureIgnoreCase));
+    }
+
+    private IEnumerator ProcessTwitchCommand(string command)
+    {
+        var buttons = GetComponent<KMSelectable>().Children;
+        var commands = command.ToLowerInvariant().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+        if (commands.Length < 2 || !equalsAnyNoCase(commands[0], "submit", "press")) yield break;
+        var buttonLabels = string.Join("",GetComponent<KMSelectable>().Children.Select(button => button.GetComponentInChildren<TextMesh>().text.ToLower()).ToArray());
+
+        List<int> buttonLookups = commands.Skip(1).SelectMany(x => x).Select(x => buttonLabels.IndexOf(x)).ToList();
+        if (buttonLookups.Any(x => x < 0)) yield break;
+
+        yield return null;
+
+        foreach (int button in buttonLookups)
+        {
+            buttons[button].OnInteract();
+            yield return new WaitForSeconds(0.1f);
+        }
+    }
 
 
 }
