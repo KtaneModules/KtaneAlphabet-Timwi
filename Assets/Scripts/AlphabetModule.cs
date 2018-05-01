@@ -88,20 +88,21 @@ public class AlphabetModule : MonoBehaviour
         {
             if (LockedButtons[button])
                 return;
-            //Debug.Log ("not locked");
+
+            Debug.LogFormat(@"[Alphabet #{0}] You pressed {1}, which is {2}correct{3}", _moduleId, ButtonLabels.Substring(button, 1), IsCorrectButton(button) ? "" : "NOT ", IsCorrectButton(button) ? "." : " — strike!");
+
             // not locked, so anything can happen now
             if (IsCorrectButton(button))
             {
-                //print ("correct");
                 // yaay
                 SetLEDColor(button, true);
                 LockedButtons[button] = true;
                 TypingCode += GetNextCodeChar();
-                //print ("typing code now " + TypingCode);
                 if (TypingCode.Length == 4)
                 {
                     GetComponent<KMBombModule>().HandlePass();
                     activated = false;
+                    Debug.LogFormat(@"[Alphabet #{0}] Module solved.", _moduleId);
                 }
             }
             else
