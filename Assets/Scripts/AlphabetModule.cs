@@ -34,11 +34,12 @@ public class AlphabetModule : MonoBehaviour
         "OP"
     };
     bool activated = false;
+    bool solved = false;
 
     string ButtonLabels = ""; // the labels of the buttons
     string CorrectCode = ""; // the correct code
     string TypingCode = ""; // the code that we're typing
-    bool[] LockedButtons = new bool[4]; // when we press a correct button, lock it
+    readonly bool[] LockedButtons = new bool[4]; // when we press a correct button, lock it
 
     static int _moduleIdCounter = 1;
     int _moduleId;
@@ -53,6 +54,7 @@ public class AlphabetModule : MonoBehaviour
         KMSelectable[] buttons = GetComponent<KMSelectable>().Children;
         for (int i = 0; i < 4; i++)
         {
+            SetLEDColor(i, false);
             buttons[i].GetComponentInChildren<TextMesh>().text = ButtonLabels.Substring(i, 1);
             int j = i;
             buttons[i].OnInteract += delegate ()
@@ -62,7 +64,6 @@ public class AlphabetModule : MonoBehaviour
                 return false;
             };
         }
-
     }
 
     void SetLEDColor(int button, bool On)
@@ -102,6 +103,7 @@ public class AlphabetModule : MonoBehaviour
                 {
                     GetComponent<KMBombModule>().HandlePass();
                     activated = false;
+                    solved = true;
                     Debug.LogFormat(@"[Alphabet #{0}] Module solved.", _moduleId);
                 }
             }
@@ -114,32 +116,28 @@ public class AlphabetModule : MonoBehaviour
     }
 
 
-    string CanSpell(string Query, string With) // Query is the thing you're searching for, With is the string you're checking whether it can spell Query or not
+    string CanSpell(string query, string with) // Query is the thing you're searching for, With is the string you're checking whether it can spell Query or not
     {
-        int Can = 0; // tells how many characters we could spell
+        int can = 0; // tells how many characters we could spell
 
-        string NewWith = ""; // this stores the unused characters
+        string newWith = ""; // this stores the unused characters
 
-        for (int i = With.Length - 1; i >= 0; i--) // start from the end so removing doesn't fuck up stuff if we went up
+        for (int i = with.Length - 1; i >= 0; i--) // start from the end so removing doesn't fuck up stuff if we went up
         {
+            string search = query.Substring(0, Mathf.Min(query.Length, with.Length)); // the portion of the string we're searching for
+            string searchQuery = with.Substring(i, 1); // the search query
 
-            string Search = Query.Substring(0, Mathf.Min(Query.Length, With.Length)); // the portion of the string we're searching for
-            string _Query = With.Substring(i, 1); // the search query
-                                                  //Debug.Log (i + ", " + Search + ", " + _Query);
-
-            if (Search.Contains(_Query))
+            if (search.Contains(searchQuery))
             {
-                //Debug.Log ("CONTAINS " + _Query);
-                // we can spell this character
-                Can++; // so count it
+                // we can spell this character, so count it
+                can++;
             }
             else
             {
-                NewWith += With.Substring(i, 1); // otherwise, this is an unusable character, so it's a 'leftover'
+                newWith += with.Substring(i, 1); // otherwise, this is an unusable character, so it's a 'leftover'
             }
         }
-        //Debug.Log ("> " + Can + ", " + originalSize );
-        return Can >= Query.Length ? NewWith : With; // if we managed to spell enough characters, return the leftovers, otherwise return the original With variable
+        return can >= query.Length ? newWith : with; // if we managed to spell enough characters, return the leftovers, otherwise return the original With variable
     }
 
     string GenerateCorrectCode()
@@ -178,7 +176,6 @@ public class AlphabetModule : MonoBehaviour
 
         for (int i = 0; i < All.Count; i++)
         {
-            //Debug.Log ("checking if can spell " + All [i] + " with " + Labels);
             string remainders = CanSpell(All[i], Labels); // CanSpell will return the characters that weren't used to spell a word. if the word can't be spelled, it will return what was given as the 2nd argument
             if (remainders != Labels) // if the remainders have changed
             {
@@ -216,7 +213,6 @@ public class AlphabetModule : MonoBehaviour
     {
         // let's guarantee they can spell at least one word
         string toRet = WordBank[Random.Range(0, WordBank.Length)];
-        //Debug.Log ("you can spell " + toRet);
         // now let's fill in the rest
 
         while (toRet.Length < 4)
@@ -230,24 +226,27 @@ public class AlphabetModule : MonoBehaviour
         }
 
         // scramble it up just in case
-        string New = "";
+        string newLetters = "";
         while (toRet.Length > 0)
         {
             int i = Random.Range(0, toRet.Length);
-            New += toRet.Substring(i, 1);
+            newLetters += toRet.Substring(i, 1);
             toRet = toRet.Remove(i, 1);
         }
 
-        Debug.LogFormat(@"[Alphabet #{0}] Letters on buttons are: {1}", _moduleId, New);
-        return New;
+        Debug.LogFormat(@"[Alphabet #{0}] Letters on buttons are: {1}", _moduleId, newLetters);
+        return newLetters;
     }
 
 #pragma warning disable 414
-    private string TwitchHelpMessage = @"Submit your answer with “!{0} press A B C D”.";
+    private readonly string TwitchHelpMessage = @"Submit your answer with “!{0} press A B C D”.";
 #pragma warning restore 414
 
     private IEnumerator ProcessTwitchCommand(string command)
     {
+        if (solved)
+            yield break;
+
         var pieces = command.ToLowerInvariant().Split(new[] { ' ' }, 2, StringSplitOptions.RemoveEmptyEntries);
 
         if (pieces.Length < 2 || (pieces[0] != "submit" && pieces[0] != "press"))
@@ -265,6 +264,16 @@ public class AlphabetModule : MonoBehaviour
         {
             buttons[ix].OnInteract();
             yield return new WaitForSeconds(.1f);
+        }
+    }
+
+    IEnumerator TwitchHandleForcedSolve()
+    {
+        while (!solved)
+        {
+            var valid = Enumerable.Range(0, 4).First(i => IsCorrectButton(i));
+            GetComponent<KMSelectable>().Children[valid].OnInteract();
+            yield return new WaitForSeconds(.25f);
         }
     }
 }
